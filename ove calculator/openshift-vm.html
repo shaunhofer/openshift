@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenShift VM Sizing Tool</title>
+    <!-- Use the Inter font from Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container bg-white rounded-2xl shadow-xl p-8 md:p-12">
+        <h1 class="text-3xl font-bold text-center mb-4 text-gray-800">OpenShift VM Sizing Calculator</h1>
+        <p class="text-center text-gray-600 mb-8">
+            This tool helps you estimate the required number of OpenShift nodes based on your VM requirements.
+        </p>
+
+        <!-- Input Section -->
+        <div class="space-y-6">
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">VM Workload</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="numVms" class="block text-sm font-medium text-gray-700 mb-1">Number of VMs</label>
+                        <input type="number" id="numVms" value="1" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="totalVmCpu" class="block text-sm font-medium text-gray-700 mb-1">Total CPU Cores for Cluster (vCPU)</label>
+                        <input type="number" id="totalVmCpu" value="4" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="totalVmRam" class="block text-sm font-medium text-gray-700 mb-1">Total RAM for Cluster (GB)</label>
+                        <input type="number" id="totalVmRam" value="8" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Worker Node Specifications</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="workerNodeCores" class="block text-sm font-medium text-gray-700 mb-1">CPU Cores Per Node</label>
+                        <input type="number" id="workerNodeCores" value="4" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="workerNodeRam" class="block text-sm font-medium text-gray-700 mb-1">RAM Per Node (GB)</label>
+                        <input type="number" id="workerNodeRam" value="16" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div class="flex items-center">
+                        <input id="hyperthreading" type="checkbox" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="hyperthreading" class="ml-2 block text-sm font-medium text-gray-700">Hyperthreading On</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="useMaxCores" type="checkbox" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="useMaxCores" class="ml-2 block text-sm font-medium text-gray-700">Use 128 Cores (Subscription Max)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Overhead Configuration</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="overheadCpu" class="block text-sm font-medium text-gray-700 mb-1">CPU Overhead (vCPU)</label>
+                        <input type="number" id="overheadCpu" value="4" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="overheadRam" class="block text-sm font-medium text-gray-700 mb-1">RAM Overhead (GB)</label>
+                        <input type="number" id="overheadRam" value="24" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div class="flex items-center">
+                        <input id="useDefaultOverhead" type="checkbox" checked class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="useDefaultOverhead" class="ml-2 block text-sm font-medium text-gray-700">Use Default Overheads (4 vCPU, 24 GB)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Overcommit Ratio</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="overcommitCpu" class="block text-sm font-medium text-gray-700 mb-1">CPU Overcommit Ratio</label>
+                        <input type="number" id="overcommitCpu" value="1" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Growth</h2>
+                <p class="text-sm text-gray-500 mb-4">
+                    The below will take the number of years and compound the percentage at the end of each year.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="growthYears" class="block text-sm font-medium text-gray-700 mb-1">Years</label>
+                        <input type="number" id="growthYears" value="0" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="growthPercentage" class="block text-sm font-medium text-gray-700 mb-1">Annual Growth Percentage (%)</label>
+                        <input type="number" id="growthPercentage" value="0" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+
+            <button onclick="calculateSizing()" class="w-full py-3 px-6 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
+                Calculate Required Nodes
+            </button>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultSection" class="hidden mt-8 space-y-6">
+            <div class="bg-red-50 p-6 rounded-xl border border-red-200">
+                <h2 class="text-xl font-bold mb-4 text-red-800 text-center">Required Cluster Resources</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                    <div class="bg-red-100 p-4 rounded-lg">
+                        <p class="text-2xl font-bold text-red-800" id="finalCpu">0</p>
+                        <p class="text-sm text-red-700">Total Required vCPU</p>
+                    </div>
+                    <div class="bg-red-100 p-4 rounded-lg">
+                        <p class="text-2xl font-bold text-red-800" id="finalRam">0</p>
+                        <p class="text-sm text-red-700">Total Required RAM (GB)</p>
+                    </div>
+                </div>
+                <p id="growthNote" class="text-sm text-gray-500 mt-4 text-center italic">
+                    *The values above include projected growth.
+                </p>
+            </div>
+            
+            <!-- Node Cluster Estimation Section -->
+            <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                <h2 class="text-xl font-bold mb-4 text-green-800 text-center">Node Cluster Estimation</h2>
+                
+                <!-- n worker nodes -->
+                <div id="nNodes" class="mb-4">
+                    <h3 class="text-lg font-semibold text-green-700 text-center">n Nodes</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="workerNodesN">0</p>
+                            <p class="text-sm text-green-700">Worker Nodes</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="controlNodesN">0</p>
+                            <p class="text-sm text-green-700">Control Plane Nodes</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="coresUsageN">0% Cores Used</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="ramUsageN">0% RAM Used</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- n+1 worker nodes -->
+                <div id="nPlus1Nodes" class="mb-4">
+                    <h3 class="text-lg font-semibold text-green-700 text-center">n+1 Nodes</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="workerNodesN1">0</p>
+                            <p class="text-sm text-green-700">Worker Nodes</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="controlNodesN1">0</p>
+                            <p class="text-sm text-green-700">Control Plane Nodes</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="coresUsageN1">0% Cores Used</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="ramUsageN1">0% RAM Used</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- n+2 worker nodes -->
+                <div id="nPlus2Nodes">
+                    <h3 class="text-lg font-semibold text-green-700 text-center">n+2 Nodes</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="workerNodesN2">0</p>
+                            <p class="text-sm text-green-700">Worker Nodes</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-2xl font-bold text-green-800" id="controlNodesN2">0</p>
+                            <p class="text-sm text-green-700">Control Plane Nodes</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="coresUsageN2">0% Cores Used</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-lg font-semibold text-gray-700" id="ramUsageN2">0% RAM Used</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-500 mt-4 text-center">
+                    *For high availability, a minimum of 3 control plane nodes is recommended.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggles the worker node cores input based on the subscription max checkbox
+        document.getElementById('useMaxCores').addEventListener('change', function() {
+            const coresInput = document.getElementById('workerNodeCores');
+            if (this.checked) {
+                coresInput.value = 128;
+                coresInput.disabled = true;
+                coresInput.classList.add('cursor-not-allowed', 'bg-gray-200');
+            } else {
+                coresInput.value = 4;
+                coresInput.disabled = false;
+                coresInput.classList.remove('cursor-not-allowed', 'bg-gray-200');
+            }
+        });
+
+        // Toggles the overhead inputs based on the default overhead checkbox
+        document.getElementById('useDefaultOverhead').addEventListener('change', function() {
+            const overheadCpuInput = document.getElementById('overheadCpu');
+            const overheadRamInput = document.getElementById('overheadRam');
+            if (this.checked) {
+                overheadCpuInput.value = 4;
+                overheadRamInput.value = 24;
+                overheadCpuInput.disabled = true;
+                overheadRamInput.disabled = true;
+                overheadCpuInput.classList.add('cursor-not-allowed', 'bg-gray-200');
+                overheadRamInput.classList.add('cursor-not-allowed', 'bg-gray-200');
+            } else {
+                overheadCpuInput.disabled = false;
+                overheadRamInput.disabled = false;
+                overheadCpuInput.classList.remove('cursor-not-allowed', 'bg-gray-200');
+                overheadRamInput.classList.remove('cursor-not-allowed', 'bg-gray-200');
+            }
+        });
+
+        function calculateSizing() {
+            // Get user input for application workload
+            let totalVmCpu = parseFloat(document.getElementById('totalVmCpu').value) || 0;
+            let totalVmRam = parseFloat(document.getElementById('totalVmRam').value) || 0;
+            
+            // Get user input for worker node specs
+            let workerNodeCores = parseFloat(document.getElementById('workerNodeCores').value) || 0;
+            const workerNodeRam = parseFloat(document.getElementById('workerNodeRam').value) || 0;
+            const hyperthreading = document.getElementById('hyperthreading').checked;
+            
+            // Get overhead and overcommit values
+            const overheadPerNodeCpu = parseFloat(document.getElementById('overheadCpu').value) || 0;
+            const overheadPerNodeRam = parseFloat(document.getElementById('overheadRam').value) || 0;
+            const overcommitCpu = parseFloat(document.getElementById('overcommitCpu').value) || 1;
+            
+            // Get growth values
+            const growthYears = parseFloat(document.getElementById('growthYears').value) || 0;
+            const growthPercentage = parseFloat(document.getElementById('growthPercentage').value) || 0;
+
+            // Apply growth compounding
+            const growthFactor = Math.pow(1 + (growthPercentage / 100), growthYears);
+            const finalAppCpu = totalVmCpu * growthFactor;
+            const finalAppRam = totalVmRam * growthFactor;
+
+            // Apply hyperthreading multiplier
+            if (hyperthreading) {
+                workerNodeCores *= 1.5;
+            }
+
+            // Calculate effective resources per node, considering overcommit
+            const effectiveNodeCpu = (workerNodeCores - overheadPerNodeCpu) * overcommitCpu;
+            const effectiveNodeRam = workerNodeRam - overheadPerNodeRam;
+            
+            // Calculate the number of worker nodes needed for the base case (n)
+            let workerNodes = 0;
+            if (effectiveNodeCpu > 0) {
+                 workerNodes = Math.max(workerNodes, Math.ceil(finalAppCpu / effectiveNodeCpu));
+            }
+            if (effectiveNodeRam > 0) {
+                 workerNodes = Math.max(workerNodes, Math.ceil(finalAppRam / effectiveNodeRam));
+            }
+            if (workerNodes === 0) {
+                workerNodes = 1; // Minimum of 1 worker node
+            }
+            
+            // Calculate control plane nodes for n workers
+            const controlNodesN = getControlNodes(workerNodes);
+            
+            // Calculate for n+1 workers
+            const workerNodesN1 = workerNodes + 1;
+            const controlNodesN1 = getControlNodes(workerNodesN1);
+            
+            // Calculate for n+2 workers
+            const workerNodesN2 = workerNodes + 2;
+            const controlNodesN2 = getControlNodes(workerNodesN2);
+
+            // Function to determine control plane node count
+            function getControlNodes(workerCount) {
+                if (workerCount <= 25) {
+                    return 3;
+                } else if (workerCount <= 100) {
+                    return 5;
+                } else {
+                    return 7;
+                }
+            }
+
+            // Calculate usage percentages
+            const coresUsedN = Math.min(100, (finalAppCpu / (effectiveNodeCpu * workerNodes)) * 100).toFixed(2);
+            const ramUsedN = Math.min(100, (finalAppRam / (effectiveNodeRam * workerNodes)) * 100).toFixed(2);
+            
+            const coresUsedN1 = Math.min(100, (finalAppCpu / (effectiveNodeCpu * workerNodesN1)) * 100).toFixed(2);
+            const ramUsedN1 = Math.min(100, (finalAppRam / (effectiveNodeRam * workerNodesN1)) * 100).toFixed(2);
+
+            const coresUsedN2 = Math.min(100, (finalAppCpu / (effectiveNodeCpu * workerNodesN2)) * 100).toFixed(2);
+            const ramUsedN2 = Math.min(100, (finalAppRam / (effectiveNodeRam * workerNodesN2)) * 100).toFixed(2);
+
+            // Update the results section in the HTML
+            document.getElementById('finalCpu').textContent = finalAppCpu.toFixed(2);
+            document.getElementById('finalRam').textContent = finalAppRam.toFixed(2);
+            
+            // Update n nodes
+            document.getElementById('workerNodesN').textContent = workerNodes;
+            document.getElementById('controlNodesN').textContent = controlNodesN;
+            document.getElementById('coresUsageN').textContent = `${coresUsedN}% Cores Used`;
+            document.getElementById('ramUsageN').textContent = `${ramUsedN}% RAM Used`;
+
+            // Update n+1 nodes
+            document.getElementById('workerNodesN1').textContent = workerNodesN1;
+            document.getElementById('controlNodesN1').textContent = controlNodesN1;
+            document.getElementById('coresUsageN1').textContent = `${coresUsedN1}% Cores Used`;
+            document.getElementById('ramUsageN1').textContent = `${ramUsedN1}% RAM Used`;
+            
+            // Update n+2 nodes
+            document.getElementById('workerNodesN2').textContent = workerNodesN2;
+            document.getElementById('controlNodesN2').textContent = controlNodesN2;
+            document.getElementById('coresUsageN2').textContent = `${coresUsedN2}% Cores Used`;
+            document.getElementById('ramUsageN2').textContent = `${ramUsedN2}% RAM Used`;
+
+            // Show the result section
+            document.getElementById('resultSection').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
